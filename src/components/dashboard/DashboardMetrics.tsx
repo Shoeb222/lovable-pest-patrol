@@ -17,6 +17,7 @@ interface MetricCardProps {
     link?: string;
   };
   className?: string;
+  style?: React.CSSProperties;
 }
 
 function MetricCard({ 
@@ -26,10 +27,11 @@ function MetricCard({
   icon, 
   trend, 
   footer, 
-  className 
+  className,
+  style
 }: MetricCardProps) {
   return (
-    <Card className={cn("overflow-hidden transition-all duration-200 hover:border-primary/50", className)}>
+    <Card className={cn("overflow-hidden transition-all duration-200 hover:border-primary/50", className)} style={style}>
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
           <CardDescription>{title}</CardDescription>

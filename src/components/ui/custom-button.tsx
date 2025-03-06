@@ -2,11 +2,11 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { CircleNotch } from "lucide-react";
+import { Loader } from "lucide-react";
 
 interface CustomButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: "default" | "primary" | "secondary" | "outline" | "ghost" | "link" | "destructive";
-  size?: "sm" | "md" | "lg" | "icon";
+  size?: "default" | "sm" | "lg" | "icon";
   isLoading?: boolean;
   leftIcon?: React.ReactNode;
   rightIcon?: React.ReactNode;
@@ -17,7 +17,7 @@ const CustomButton = React.forwardRef<HTMLButtonElement, CustomButtonProps>(
   ({ 
     className, 
     variant = "default", 
-    size = "md", 
+    size = "default", 
     isLoading = false, 
     leftIcon, 
     rightIcon, 
@@ -52,7 +52,7 @@ const CustomButton = React.forwardRef<HTMLButtonElement, CustomButtonProps>(
       >
         {isLoading && (
           <span className="absolute inset-0 flex items-center justify-center bg-inherit">
-            <CircleNotch className="h-5 w-5 animate-spin" />
+            <Loader className="h-5 w-5 animate-spin" />
           </span>
         )}
         <span className={cn("flex items-center gap-2", isLoading && "opacity-0")}>
