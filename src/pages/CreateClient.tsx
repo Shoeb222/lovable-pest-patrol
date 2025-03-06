@@ -11,6 +11,9 @@ import { Separator } from "@/components/ui/separator";
 import { CustomButton } from "@/components/ui/custom-button";
 import { useToast } from "@/components/ui/use-toast";
 
+// Import client type
+import { Client } from "@/components/clients/ClientList";
+
 const CreateClient = () => {
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
@@ -52,16 +55,36 @@ const CreateClient = () => {
       return;
     }
     
-    // Simulate API call
+    // Create a unique ID for the new client
+    const newClientId = `client-${Date.now()}`;
+    
+    // Create the new client object
+    const newClient: Client = {
+      id: newClientId,
+      name: formData.name,
+      company: formData.companyName || null,
+      email: formData.email,
+      phone: formData.mobile,
+      gender: formData.gender || "Not specified",
+      activeContracts: 0
+    };
+    
+    // Simulate API call to save the client
     setTimeout(() => {
-      toast({
-        title: "Client created",
-        description: `${formData.name} has been added to your clients.`,
+      // In a real app, this would save to the database
+      // For now, we'll add it to the sampleClients array in ClientList
+      import("@/components/clients/ClientList").then(({ sampleClients }) => {
+        sampleClients.push(newClient);
+        
+        toast({
+          title: "Client created",
+          description: `${formData.name} has been added to your clients.`,
+        });
+        
+        // Navigate to contract creation with client data
+        navigate(`/contracts/new?clientId=${newClientId}&newClient=true`);
+        setIsSubmitting(false);
       });
-      
-      // In a real app, this would redirect to the new client's page
-      navigate("/contracts/new?clientName=" + encodeURIComponent(formData.name));
-      setIsSubmitting(false);
     }, 1000);
   };
 

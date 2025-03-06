@@ -43,14 +43,16 @@ const CreateContract = () => {
   const location = useLocation();
   const { toast } = useToast();
   
-  // Parse the client ID from the URL query parameters
+  // Parse the query parameters
   const searchParams = new URLSearchParams(location.search);
   const clientIdParam = searchParams.get("clientId");
   const clientNameParam = searchParams.get("clientName");
+  const isNewClient = searchParams.get("newClient") === "true";
   
   const [clients, setClients] = useState<Client[]>([]);
   const [client, setClient] = useState<Client | null>(null);
   const [isLoadingClients, setIsLoadingClients] = useState(true);
+  const [showClientSelection, setShowClientSelection] = useState(!clientIdParam && !clientNameParam);
   
   const [formData, setFormData] = useState({
     clientId: clientIdParam || "",
@@ -174,28 +176,58 @@ const CreateContract = () => {
     // Calculate next service date based on AMC frequency
     const nextServiceDate = calculateNextDate(formData.lastServiceDate, parseInt(formData.frequency));
     
+    // Calculate auto-schedule date (7 days before next service)
+    const autoScheduleDate = new Date(nextServiceDate);
+    autoScheduleDate.setDate(autoScheduleDate.getDate() - 7);
+    
+    // Create contract object (normally would be saved to database)
+    const newContract = {
+      id: `contract-${Date.now()}`,
+      clientId: formData.clientId,
+      clientName: client?.name || "",
+      clientCompany: client?.company || undefined,
+      types: formData.services,
+      dueDate: nextServiceDate,
+      autoScheduleDate: autoScheduleDate,
+      amount: parseFloat(formData.amount),
+      frequency: formData.frequency,
+      notes: formData.notes,
+      status: "pending" as const,
+      lastServiceDate: formData.lastServiceDate
+    };
+    
     // Simulate creating the contract
     setTimeout(() => {
-      // Also automatically create the next scheduled contract (7 days before due date)
-      const autoScheduleDate = new Date(nextServiceDate);
-      autoScheduleDate.setDate(autoScheduleDate.getDate() - 7);
+      // Update client's active contract count
+      if (client) {
+        const clientToUpdate = clients.find(c => c.id === client.id);
+        if (clientToUpdate) {
+          clientToUpdate.activeContracts += 1;
+        }
+      }
       
-      toast({
-        title: "Contract created successfully",
-        description: `New contract created for ${client?.name}. Next service scheduled for ${format(nextServiceDate, "MMM dd, yyyy")}.`,
-      });
-      
-      // Show the auto-scheduling toast
-      setTimeout(() => {
+      // In a real app, this would save to the database
+      import("@/components/contracts/ContractList").then(({ sampleContracts }) => {
+        // Add the new contract to the sample data
+        sampleContracts.push(newContract);
+        
         toast({
-          title: "Auto-scheduled next service",
-          description: `A follow-up service has been auto-scheduled for 7 days before the due date (${format(autoScheduleDate, "MMM dd, yyyy")}).`,
+          title: "Contract created successfully",
+          description: `New contract created for ${client?.name}. Next service scheduled for ${format(nextServiceDate, "MMM dd, yyyy")}.`,
         });
-      }, 1000);
-      
-      // In a real app, this would redirect to the new contract's detail page
-      navigate("/contracts");
-      setIsSubmitting(false);
+        
+        // Show the auto-scheduling toast
+        setTimeout(() => {
+          toast({
+            title: "Auto-scheduled next service",
+            description: `A follow-up service has been auto-scheduled for 7 days before the due date (${format(autoScheduleDate, "MMM dd, yyyy")}).`,
+          });
+        }, 1000);
+        
+        // In a real app, this would redirect to the new contract's detail page
+        navigate("/contracts");
+        setIsSubmitting(false);
+      });
     }, 1500);
   };
 
@@ -228,35 +260,46 @@ const CreateContract = () => {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Client Selection */}
-              <div className="space-y-2">
-                <Label htmlFor="client">Client <span className="text-red-500">*</span></Label>
-                {isLoadingClients ? (
-                  <div className="h-10 w-full animate-pulse bg-muted rounded-md"></div>
-                ) : (
-                  <Select
-                    value={formData.clientId}
-                    onValueChange={handleClientChange}
-                    disabled={Boolean(clientIdParam) || Boolean(clientNameParam)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a client" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {clients.map(client => (
-                        <SelectItem key={client.id} value={client.id}>
-                          {client.name} {client.company ? `(${client.company})` : ""}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
-                {!clientIdParam && !clientNameParam && (
+              {/* Client Selection - Only show if not coming from client creation */}
+              {showClientSelection && (
+                <div className="space-y-2">
+                  <Label htmlFor="client">Client <span className="text-red-500">*</span></Label>
+                  {isLoadingClients ? (
+                    <div className="h-10 w-full animate-pulse bg-muted rounded-md"></div>
+                  ) : (
+                    <Select
+                      value={formData.clientId}
+                      onValueChange={handleClientChange}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a client" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {clients.map(client => (
+                          <SelectItem key={client.id} value={client.id}>
+                            {client.name} {client.company ? `(${client.company})` : ""}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
                   <p className="text-sm text-muted-foreground mt-2">
                     Don't see your client? <Button variant="link" className="p-0 h-auto" onClick={() => navigate("/clients/new")}>Add a new client</Button>
                   </p>
-                )}
-              </div>
+                </div>
+              )}
+              
+              {/* Show client info if coming from client creation */}
+              {!showClientSelection && client && (
+                <div className="bg-muted p-4 rounded-md mb-6">
+                  <h3 className="text-lg font-semibold">{client.name}</h3>
+                  {client.company && <p className="text-sm text-muted-foreground">{client.company}</p>}
+                  <div className="grid grid-cols-2 gap-4 mt-2">
+                    <p className="text-sm"><span className="font-medium">Email:</span> {client.email}</p>
+                    <p className="text-sm"><span className="font-medium">Phone:</span> {client.phone}</p>
+                  </div>
+                </div>
+              )}
               
               <Separator />
               
