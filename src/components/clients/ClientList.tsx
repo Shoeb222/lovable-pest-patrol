@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Eye, Search, UserPlus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
-interface Client {
+export interface Client {
   id: string;
   name: string;
   company: string | null;
@@ -18,7 +18,7 @@ interface Client {
 }
 
 // Sample data - would normally come from an API
-const sampleClients: Client[] = [
+export const sampleClients: Client[] = [
   {
     id: "1",
     name: "John Smith",

@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
   AlertCircle, CheckCircle, Clock, Filter, Plus, Search, UserPlus 
@@ -10,13 +10,15 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { format } from "date-fns";
+import { format, addDays, isToday, isPast, isFuture, subDays } from "date-fns";
 import { cn } from "@/lib/utils";
+import { useToast } from "@/components/ui/use-toast";
 
-interface Contract {
+export interface Contract {
   id: string;
   clientId: string;
   clientName: string;
+  clientCompany?: string;
   types: string[];
   dueDate: Date;
   amount: number;
@@ -25,11 +27,12 @@ interface Contract {
 }
 
 // Sample data - would normally come from an API
-const sampleContracts: Contract[] = [
+export const sampleContracts: Contract[] = [
   {
     id: "C001",
     clientId: "1",
     clientName: "John Smith",
+    clientCompany: "ABC Corporation",
     types: ["Termite", "Rodent"],
     dueDate: new Date(2023, 5, 15),
     amount: 250,
@@ -50,8 +53,9 @@ const sampleContracts: Contract[] = [
     id: "C003",
     clientId: "3",
     clientName: "Michael Brown",
+    clientCompany: "XYZ Ltd",
     types: ["Mosquito", "Ant"],
-    dueDate: new Date(2023, 6, 20),
+    dueDate: addDays(new Date(), 20),
     amount: 300,
     status: "pending",
     frequency: "60 Days",
@@ -70,8 +74,9 @@ const sampleContracts: Contract[] = [
     id: "C005",
     clientId: "1",
     clientName: "John Smith",
+    clientCompany: "ABC Corporation",
     types: ["Termite"],
-    dueDate: new Date(2023, 7, 5),
+    dueDate: addDays(new Date(), 7),
     amount: 180,
     status: "pending",
     frequency: "180 Days",
@@ -80,9 +85,78 @@ const sampleContracts: Contract[] = [
 
 export function ContractList() {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
-  const [contracts, setContracts] = useState(sampleContracts);
+  const [contracts, setContracts] = useState<Contract[]>([]);
   const [activeTab, setActiveTab] = useState("all");
+  
+  // Initialize contracts and check for auto-scheduling
+  useEffect(() => {
+    // Update contract statuses based on current date
+    const updatedContracts = sampleContracts.map(contract => {
+      if (contract.status === "completed") return contract;
+      
+      if (isToday(contract.dueDate)) {
+        return { ...contract, status: "dueToday" };
+      } else if (isPast(contract.dueDate)) {
+        return { ...contract, status: "pending" };
+      } else {
+        return { ...contract, status: "pending" };
+      }
+    });
+    
+    setContracts(updatedContracts);
+    
+    // Check for contracts that are due in 7 days - auto-schedule reminder
+    const contractsDueInSevenDays = updatedContracts.filter(contract => {
+      // Get the date 7 days from now
+      const sevenDaysFromNow = addDays(new Date(), 7);
+      // Check if the contract due date is the same as 7 days from now
+      return contract.dueDate.getDate() === sevenDaysFromNow.getDate() && 
+             contract.dueDate.getMonth() === sevenDaysFromNow.getMonth() && 
+             contract.dueDate.getFullYear() === sevenDaysFromNow.getFullYear();
+    });
+    
+    // Show notification for auto-scheduled contracts
+    if (contractsDueInSevenDays.length > 0) {
+      contractsDueInSevenDays.forEach(contract => {
+        // Create a reminder notification
+        toast({
+          title: "Contract Due Soon",
+          description: `Contract for ${contract.clientName} is due in 7 days (${format(contract.dueDate, "MMM dd, yyyy")})`,
+        });
+        
+        // Auto-create next contract based on frequency
+        if (contract.frequency !== "One-Time") {
+          const frequencyDays = parseInt(contract.frequency.split(" ")[0]);
+          const nextDueDate = addDays(contract.dueDate, frequencyDays);
+          
+          // Create the next contract
+          const newContract: Contract = {
+            id: `C${(contracts.length + 1).toString().padStart(3, '0')}`,
+            clientId: contract.clientId,
+            clientName: contract.clientName,
+            clientCompany: contract.clientCompany,
+            types: contract.types,
+            dueDate: nextDueDate,
+            amount: contract.amount,
+            status: "pending",
+            frequency: contract.frequency,
+          };
+          
+          // Add the new contract to the list
+          setTimeout(() => {
+            setContracts(prev => [...prev, newContract]);
+            
+            toast({
+              title: "New Contract Auto-Created",
+              description: `A new contract for ${contract.clientName} has been auto-scheduled for ${format(nextDueDate, "MMM dd, yyyy")}`,
+            });
+          }, 2000);
+        }
+      });
+    }
+  }, [toast]);
   
   // Filter contracts based on search query and active tab
   const filteredContracts = contracts.filter(contract => {
@@ -151,7 +225,7 @@ export function ContractList() {
             </CustomButton>
             <CustomButton
               leftIcon={<Plus className="h-4 w-4" />}
-              onClick={() => navigate("/clients/new")}
+              onClick={() => navigate("/contracts/new")}
             >
               New Contract
             </CustomButton>
