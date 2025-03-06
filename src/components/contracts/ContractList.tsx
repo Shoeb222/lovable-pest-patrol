@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
@@ -97,11 +96,11 @@ export function ContractList() {
       if (contract.status === "completed") return contract;
       
       if (isToday(contract.dueDate)) {
-        return { ...contract, status: "dueToday" };
+        return { ...contract, status: "dueToday" as const };
       } else if (isPast(contract.dueDate)) {
-        return { ...contract, status: "pending" };
+        return { ...contract, status: "pending" as const };
       } else {
-        return { ...contract, status: "pending" };
+        return { ...contract, status: "pending" as const };
       }
     });
     
