@@ -1,5 +1,5 @@
 
-import { createContext, useState, useContext, useEffect, ReactNode } from "react";
+import { createContext, useState, useContext, ReactNode } from "react";
 import { useToast } from "@/components/ui/use-toast";
 
 // Define the User type
@@ -22,8 +22,8 @@ interface AuthContextType {
 // Create the context with a default value
 const AuthContext = createContext<AuthContextType>({
   user: null,
-  isAuthenticated: false,
-  isLoading: true,
+  isAuthenticated: true, // Always authenticated for now
+  isLoading: false,
   login: async () => {},
   logout: () => {},
   resetPassword: async () => {},
@@ -34,51 +34,26 @@ export const useAuth = () => useContext(AuthContext);
 
 // Provider component
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  // Create a default user for the application
+  const defaultUser: User = {
+    id: "1",
+    email: "demo@example.com",
+    name: "Demo User"
+  };
+  
+  const [user, setUser] = useState<User | null>(defaultUser);
+  const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
-  // Check if user is already logged in (from localStorage for this demo)
-  useEffect(() => {
-    const storedUser = localStorage.getItem("user");
-    if (storedUser) {
-      try {
-        setUser(JSON.parse(storedUser));
-      } catch (error) {
-        console.error("Failed to parse stored user", error);
-        localStorage.removeItem("user");
-      }
-    }
-    setIsLoading(false);
-  }, []);
-
-  // Login function
+  // Login function (not used for now but kept for future implementation)
   const login = async (email: string, password: string) => {
     setIsLoading(true);
     try {
-      // This is a mock login - in a real application, you would call your API
-      if (email && password) {
-        // Simulate API delay
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        // Mock user for demo purposes
-        const mockUser = {
-          id: "1",
-          email,
-          name: "Demo User"
-        };
-        
-        // Store user in localStorage (for demo only - use secure cookies in production)
-        localStorage.setItem("user", JSON.stringify(mockUser));
-        setUser(mockUser);
-        
-        toast({
-          title: "Login successful",
-          description: "Welcome back!",
-        });
-      } else {
-        throw new Error("Please provide both email and password");
-      }
+      // Mock login is bypassed now
+      toast({
+        title: "Login successful",
+        description: "Welcome to PestPro!",
+      });
     } catch (error) {
       toast({
         title: "Login failed",
@@ -91,13 +66,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  // Logout function
+  // Logout function (not really used for now but kept for future implementation)
   const logout = () => {
-    localStorage.removeItem("user");
-    setUser(null);
+    // We don't actually log out now
     toast({
-      title: "Logged out",
-      description: "You have been successfully logged out.",
+      title: "Logout functionality",
+      description: "Logout is currently disabled as authentication is bypassed.",
     });
   };
 
@@ -105,11 +79,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const resetPassword = async (email: string) => {
     setIsLoading(true);
     try {
-      // In a real app, this would trigger a password reset email
       await new Promise(resolve => setTimeout(resolve, 1000));
       toast({
-        title: "Password reset email sent",
-        description: `If ${email} is associated with an account, you'll receive instructions to reset your password.`,
+        title: "Password reset functionality",
+        description: "Password reset is currently disabled as authentication is bypassed.",
       });
     } catch (error) {
       toast({
@@ -123,8 +96,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  // Calculate isAuthenticated based on user
-  const isAuthenticated = !!user;
+  // Always consider as authenticated
+  const isAuthenticated = true;
 
   // Value provided to consumers of the context
   const value = {
